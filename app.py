@@ -25,10 +25,16 @@ st.set_page_config(
 # Custom CSS for better UI
 st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+    html, body, [class*="css"] {
+        font-family: 'Inter', 'Segoe UI', sans-serif !important;
+    }
+
     .main-header {
         font-size: 3rem;
         font-weight: bold;
-        background: linear-gradient(120deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(120deg, #00008b 0%, #4169e1 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         text-align: center;
@@ -43,10 +49,13 @@ st.markdown("""
     }
     
     .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(0, 0, 0, 0.1);
         padding: 1.5rem;
         border-radius: 10px;
-        color: white;
+        color: #333;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
     
@@ -73,7 +82,7 @@ st.markdown("""
     }
     
     .stButton>button {
-        background: linear-gradient(120deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(120deg, #00008b 0%, #4169e1 100%);
         color: white;
         border: none;
         padding: 0.75rem 2rem;
@@ -89,7 +98,7 @@ st.markdown("""
     
     .info-box {
         background-color: #f0f8ff;
-        border-left: 5px solid #1e3c72;
+        border-left: 5px solid #00008b;
         padding: 1rem;
         border-radius: 5px;
         margin: 1rem 0;
@@ -98,6 +107,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Initialize session state
+if 'page' not in st.session_state:
+    st.session_state.page = "Home 🏠"
 if 'model_trained' not in st.session_state:
     st.session_state.model_trained = False
 if 'model' not in st.session_state:
@@ -158,27 +169,22 @@ def main():
     st.markdown('<h1 class="main-header">💵 Banknote Authentication System</h1>', unsafe_allow_html=True)
     st.markdown('<p class="sub-header">Advanced Machine Learning-Powered Counterfeit Detection</p>', unsafe_allow_html=True)
     
-    # Sidebar
-    with st.sidebar:
-        st.image("https://img.icons8.com/fluency/96/000000/banknote-with-dollar-symbol.png", width=80)
-        st.title("Navigation")
-        
-        page = st.radio("Select Module", [
-            "🏠 Home",
-            "🔍 Single Prediction",
-            "📊 Batch Prediction",
-            "📈 Model Insights",
-            "📚 About"
-        ])
-        
-        st.markdown("---")
-        st.markdown("### Quick Stats")
-        
-        if st.session_state.model_trained:
-            st.success("✅ Model Active")
-            st.metric("Accuracy", f"{st.session_state.accuracy:.2%}")
-        else:
-            st.info("⏳ Loading Model...")
+    # Navigation Dashboard
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        if st.button("Home 🏠", use_container_width=True):
+            st.session_state.page = "Home 🏠"
+    with col2:
+        if st.button("Analyze 🔍", use_container_width=True):
+            st.session_state.page = "Analyze 🔍"
+    with col3:
+        if st.button("Batch 📊", use_container_width=True):
+            st.session_state.page = "Batch 📊"
+    with col4:
+        if st.button("Insights 📈", use_container_width=True):
+            st.session_state.page = "Insights 📈"
+            
+    st.markdown("---")
     
     # Load model if not already loaded
     if not st.session_state.model_trained:
@@ -194,16 +200,14 @@ def main():
             st.session_state.model_trained = True
     
     # Page routing
-    if page == "🏠 Home":
+    if st.session_state.page == "Home 🏠":
         show_home()
-    elif page == "🔍 Single Prediction":
+    elif st.session_state.page == "Analyze 🔍":
         show_single_prediction()
-    elif page == "📊 Batch Prediction":
+    elif st.session_state.page == "Batch 📊":
         show_batch_prediction()
-    elif page == "📈 Model Insights":
+    elif st.session_state.page == "Insights 📈":
         show_model_insights()
-    elif page == "📚 About":
-        show_about()
 
 def show_home():
     """Home page with overview"""
@@ -381,46 +385,52 @@ def show_single_prediction():
         st.markdown("### Analysis Result")
         
         if prediction == 0:
-            st.markdown(f"""
+            st.markdown("""
             <div class="authentic-card">
                 ✅ AUTHENTIC BANKNOTE
-                <br>
-                <span style="font-size: 1rem;">Confidence: {confidence:.1f}%</span>
             </div>
             """, unsafe_allow_html=True)
         else:
-            st.markdown(f"""
+            st.markdown("""
             <div class="fake-card">
                 ⚠️ COUNTERFEIT DETECTED
-                <br>
-                <span style="font-size: 1rem;">Confidence: {confidence:.1f}%</span>
             </div>
             """, unsafe_allow_html=True)
         
         # Confidence gauge
-        st.markdown("### Prediction Confidence")
+        st.markdown("### Authenticity Probability")
+        
+        authentic_prob = probability[0] * 100
+        gauge_color = "#38ef7d" if authentic_prob >= 50 else "#ff4b4b"
         
         fig = go.Figure(go.Indicator(
             mode="gauge+number",
-            value=confidence,
+            value=authentic_prob,
+            number={'suffix': "%", 'font': {'color': '#333'}},
             domain={'x': [0, 1], 'y': [0, 1]},
-            title={'text': "Confidence Level"},
+            title={'text': "Probability of being Authentic", 'font': {'color': '#333'}},
             gauge={
-                'axis': {'range': [None, 100]},
-                'bar': {'color': "#38ef7d" if prediction == 0 else "#ff6a00"},
+                'axis': {'range': [0, 100]},
+                'bar': {'color': gauge_color},
+                'bgcolor': "rgba(0,0,0,0)",
                 'steps': [
-                    {'range': [0, 50], 'color': "lightgray"},
-                    {'range': [50, 75], 'color': "gray"},
-                    {'range': [75, 100], 'color': "darkgray"}
+                    {'range': [0, 50], 'color': "rgba(255, 75, 75, 0.1)"},
+                    {'range': [50, 100], 'color': "rgba(56, 239, 125, 0.1)"}
                 ],
                 'threshold': {
-                    'line': {'color': "red", 'width': 4},
+                    'line': {'color': "gray", 'width': 2},
                     'thickness': 0.75,
-                    'value': 90
+                    'value': 50
                 }
             }
         ))
-        fig.update_layout(height=300)
+        
+        fig.update_layout(
+            height=300,
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font={'color': '#333'}
+        )
         st.plotly_chart(fig, use_container_width=True)
         
         # Feature comparison
