@@ -3,39 +3,77 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 
-# Title and Description
-st.title("🏦 Banknote Authentication System")
-st.write("Enter the wavelet transform features below to verify if a banknote is Authentic or Forged.")
+# Page Config (Adds a favicon and wide layout)
+st.set_page_config(page_title="Banknote Guard AI", page_icon="🛡️", layout="wide")
 
-# Load and Train (In a real app, you'd load a pre-trained model file)
+# Custom CSS to make it look modern
+st.markdown("""
+    <style>
+    .main {
+        background-color: #f5f7f9;
+    }
+    .stButton>button {
+        width: 100%;
+        border-radius: 5px;
+        height: 3em;
+        background-color: #007BFF;
+        color: white;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# App Title
+st.title("🛡️ Banknote Guard: AI Authentication")
+st.markdown("---")
+
+# Training logic (Cached to keep it fast)
 @st.cache_resource
-def load_model():
+def load_and_train():
     url = "https://archive.ics.uci.edu/ml/machine-learning-databases/00267/data_banknote_authentication.txt"
     df = pd.read_csv(url, names=['var', 'skew', 'curt', 'entr', 'class'])
     X = df.drop('class', axis=1)
     y = df['class']
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
-    model = RandomForestClassifier(n_estimators=100)
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
     model.fit(X_scaled, y)
     return model, scaler
 
-model, scaler = load_model()
+model, scaler = load_and_train()
 
-# Sidebar for Inputs
-st.sidebar.header("Input Features")
-var = st.sidebar.number_input("Variance", value=0.0)
-skew = st.sidebar.number_input("Skewness", value=0.0)
-curt = st.sidebar.number_input("Curtosis", value=0.0)
-entr = st.sidebar.number_input("Entropy", value=0.0)
+# Using Columns to organize the UI
+col1, col2 = st.columns([1, 2])
 
-# Prediction Logic
-if st.button("Verify Banknote"):
-    features = [[var, skew, curt, entr]]
-    scaled_f = scaler.transform(features)
-    prediction = model.predict(scaled_f)
+with col1:
+    st.subheader("📊 Input Sensor Data")
+    st.info("Adjust the sliders based on the wavelet transformation metrics.")
     
-    if prediction[0] == 0:
-        st.success("✅ RESULT: The Banknote is AUTHENTIC")
+    var = st.slider("Wavelet Variance", -7.0, 7.0, 0.0)
+    skew = st.slider("Wavelet Skewness", -13.0, 13.0, 0.0)
+    curt = st.slider("Wavelet Curtosis", -5.0, 18.0, 0.0)
+    entr = st.slider("Image Entropy", -8.0, 2.0, 0.0)
+    
+    predict_btn = st.button("RUN AUTHENTICATION CHECK")
+
+with col2:
+    st.subheader("🔍 Analysis Result")
+    if predict_btn:
+        features = [[var, skew, curt, entr]]
+        scaled_f = scaler.transform(features)
+        prediction = model.predict(scaled_f)
+        probability = model.predict_proba(scaled_f)[0]
+        
+        # Displaying a progress bar for confidence
+        confidence = max(probability)
+        
+        if prediction[0] == 0:
+            st.balloons()
+            st.success("### ✅ AUTHENTIC BANKNOTE")
+            st.metric(label="Match Confidence", value=f"{confidence*100:.2f}%")
+            st.write("The patterns in the wavelet transformation match high-security printing standards.")
+        else:
+            st.error("### ❌ FORGED / COUNTERFEIT DETECTED")
+            st.metric(label="Fraud Probability", value=f"{confidence*100:.2f}%")
+            st.warning("Warning: Unusual wavelet variance and entropy detected. This note should be manually inspected.")
     else:
-        st.error("❌ RESULT: The Banknote is FORGED")
+        st.write("Adjust the parameters on the left and click 'Run Check' to analyze.")
