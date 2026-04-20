@@ -114,7 +114,7 @@ if 'feature_importance' not in st.session_state:
 def load_and_train_model():
     """Load data and train the model"""
     # Load the dataset
-  df = pd.read_csv('data-banknote-authentication.csv')
+    df = pd.read_csv('data-banknote-authentication.csv')
     df.columns = ['Variance', 'Skewness', 'Curtosis', 'Entropy', 'Class']
     
     # Remove duplicates
